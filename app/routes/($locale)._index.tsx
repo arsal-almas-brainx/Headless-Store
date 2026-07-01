@@ -8,12 +8,10 @@ import {Await, useLoaderData} from '@remix-run/react';
 import {getSeoMeta} from '@shopify/hydrogen';
 
 import {MymolimentiHero} from '~/components/mymolimenti/MymolimentiHero';
-import {Hero} from '~/components/Hero';
-import {FeaturedCollections} from '~/components/FeaturedCollections';
-import {ProductSwimlane} from '~/components/ProductSwimlane';
-import {MEDIA_FRAGMENT, PRODUCT_CARD_FRAGMENT} from '~/data/fragments';
-import {getHeroPlaceholder} from '~/lib/placeholders';
+import {ShopByCategories} from '~/components/mymolimenti/ShopByCategories';
+import {MEDIA_FRAGMENT} from '~/data/fragments';
 import {buildMymolimentiHeroSlides} from '~/lib/mymolimenti-hero';
+import {fetchCategoryCollections} from '~/lib/mymolimenti-categories';
 import {seoPayload} from '~/lib/seo.server';
 import {routeHeaders} from '~/data/cache';
 
@@ -68,77 +66,15 @@ async function loadCriticalData({context, request}: LoaderFunctionArgs) {
  * Make sure to not throw any errors here, as it will cause the page to 500.
  */
 function loadDeferredData({context}: LoaderFunctionArgs) {
-  const {language, country} = context.storefront.i18n;
-
-  const featuredProducts = context.storefront
-    .query(HOMEPAGE_FEATURED_PRODUCTS_QUERY, {
-      variables: {
-        /**
-         * Country and language properties are automatically injected
-         * into all queries. Passing them is unnecessary unless you
-         * want to override them from the following default:
-         */
-        country,
-        language,
-      },
-    })
-    .catch((error) => {
-      // Log query errors, but don't throw them so the page can still render
+  const categoryCollections = fetchCategoryCollections(context.storefront).catch(
+    (error) => {
       // eslint-disable-next-line no-console
-      console.error(error);
-      return null;
-    });
+      console.error('[ShopByCategories] Storefront query failed:', error);
+      return [] as Awaited<ReturnType<typeof fetchCategoryCollections>>;
+    },
+  );
 
-  const secondaryHero = context.storefront
-    .query(COLLECTION_HERO_QUERY, {
-      variables: {
-        handle: 'backcountry',
-        country,
-        language,
-      },
-    })
-    .catch((error) => {
-      // Log query errors, but don't throw them so the page can still render
-      // eslint-disable-next-line no-console
-      console.error(error);
-      return null;
-    });
-
-  const featuredCollections = context.storefront
-    .query(FEATURED_COLLECTIONS_QUERY, {
-      variables: {
-        country,
-        language,
-      },
-    })
-    .catch((error) => {
-      // Log query errors, but don't throw them so the page can still render
-      // eslint-disable-next-line no-console
-      console.error(error);
-      return null;
-    });
-
-  const tertiaryHero = context.storefront
-    .query(COLLECTION_HERO_QUERY, {
-      variables: {
-        handle: 'winter-2022',
-        country,
-        language,
-      },
-    })
-    .catch((error) => {
-      // Log query errors, but don't throw them so the page can still render
-      // eslint-disable-next-line no-console
-      console.error(error);
-      return null;
-    });
-
-  return {
-    featuredProducts,
-    secondaryHero,
-    featuredCollections,
-    tertiaryHero,
-  };
+  return {categoryCollections};
 }
 
 export const meta = ({matches}: MetaArgs<typeof loader>) => {
@@ -146,91 +82,36 @@ export const meta = ({matches}: MetaArgs<typeof loader>) => {
 };
 
 export default function Homepage() {
-  const {
-    heroSlides,
-    secondaryHero,
-    tertiaryHero,
-    featuredCollections,
-    featuredProducts,
-  } = useLoaderData<typeof loader>();
-
-  const skeletons = getHeroPlaceholder([{}, {}, {}]);
+  const {heroSlides, categoryCollections} = useLoaderData<typeof loader>();
 
   return (
     <>
       <MymolimentiHero slides={heroSlides} />
 
-      {featuredProducts && (
-        <Suspense>
-          <Await resolve={featuredProducts}>
-            {(response) => {
-              if (
-                !response ||
-                !response?.products ||
-                !response?.products?.nodes
-              ) {
-                return <></>;
-              }
-              return (
-                <ProductSwimlane
-                  products={response.products}
-                  title="Featured Products"
-                  count={4}
-                />
-              );
-            }}
-          </Await>
-        </Suspense>
-      )}
-
-      {secondaryHero && (
-        <Suspense fallback={<Hero {...skeletons[1]} />}>
-          <Await resolve={secondaryHero}>
-            {(response) => {
-              if (!response || !response?.hero) {
-                return <></>;
-              }
-              return <Hero {...response.hero} />;
-            }}
-          </Await>
-        </Suspense>
-      )}
-
-      {featuredCollections && (
-        <Suspense>
-          <Await resolve={featuredCollections}>
-            {(response) => {
-              if (
-                !response ||
-                !response?.collections ||
-                !response?.collections?.nodes
-              ) {
-                return <></>;
-              }
-              return (
-                <FeaturedCollections
-                  collections={response.collections}
-                  title="Collections"
-                />
-              );
-            }}
-          </Await>
-        </Suspense>
-      )}
-
-      {tertiaryHero && (
-        <Suspense fallback={<Hero {...skeletons[2]} />}>
-          <Await resolve={tertiaryHero}>
-            {(response) => {
-              if (!response || !response?.hero) {
-                return <></>;
-              }
-              return <Hero {...response.hero} />;
-            }}
-          </Await>
-        </Suspense>
-      )}
+      <Suspense fallback={<CategoriesSkeleton />}>
+        <Await resolve={categoryCollections}>
+          {(collections) => (
+            <ShopByCategories categories={collections} />
+          )}
+        </Await>
+      </Suspense>
     </>
+  );
+}
+
+function CategoriesSkeleton() {
+  return (
+    <section className="bg-white px-4 py-12 lg:px-[60px] lg:py-16">
+      <div className="mb-10 h-10 w-64 animate-pulse rounded bg-black/5" />
+      <div className="grid gap-6 lg:grid-cols-4">
+        {Array.from({length: 4}).map((_, i) => (
+          <div key={i}>
+            <div className="aspect-[312/360] animate-pulse bg-black/5" />
+            <div className="mt-4 h-6 w-32 animate-pulse rounded bg-black/5" />
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -275,50 +156,4 @@ const HOMEPAGE_SEO_QUERY = `#graphql
     }
   }
   ${COLLECTION_CONTENT_FRAGMENT}
-` as const;
-
-const COLLECTION_HERO_QUERY = `#graphql
-  query heroCollectionContent($handle: String, $country: CountryCode, $language: LanguageCode)
-  @inContext(country: $country, language: $language) {
-    hero: collection(handle: $handle) {
-      ...CollectionContent
-    }
-  }
-  ${COLLECTION_CONTENT_FRAGMENT}
-` as const;
-
-// @see: https://shopify.dev/api/storefront/current/queries/products
-export const HOMEPAGE_FEATURED_PRODUCTS_QUERY = `#graphql
-  query homepageFeaturedProducts($country: CountryCode, $language: LanguageCode)
-  @inContext(country: $country, language: $language) {
-    products(first: 8) {
-      nodes {
-        ...ProductCard
-      }
-    }
-  }
-  ${PRODUCT_CARD_FRAGMENT}
-` as const;
-
-// @see: https://shopify.dev/api/storefront/current/queries/collections
-export const FEATURED_COLLECTIONS_QUERY = `#graphql
-  query homepageFeaturedCollections($country: CountryCode, $language: LanguageCode)
-  @inContext(country: $country, language: $language) {
-    collections(
-      first: 4,
-      sortKey: UPDATED_AT
-    ) {
-      nodes {
-        id
-        title
-        handle
-        image {
-          altText
-          width
-          height
-          url
-        }
-      }
-    }
-  }
 ` as const;
