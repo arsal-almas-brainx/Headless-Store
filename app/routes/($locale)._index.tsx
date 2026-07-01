@@ -7,11 +7,13 @@ import {Suspense} from 'react';
 import {Await, useLoaderData} from '@remix-run/react';
 import {getSeoMeta} from '@shopify/hydrogen';
 
+import {MymolimentiHero} from '~/components/mymolimenti/MymolimentiHero';
 import {Hero} from '~/components/Hero';
 import {FeaturedCollections} from '~/components/FeaturedCollections';
 import {ProductSwimlane} from '~/components/ProductSwimlane';
 import {MEDIA_FRAGMENT, PRODUCT_CARD_FRAGMENT} from '~/data/fragments';
 import {getHeroPlaceholder} from '~/lib/placeholders';
+import {buildMymolimentiHeroSlides} from '~/lib/mymolimenti-hero';
 import {seoPayload} from '~/lib/seo.server';
 import {routeHeaders} from '~/data/cache';
 
@@ -48,12 +50,14 @@ async function loadCriticalData({context, request}: LoaderFunctionArgs) {
     context.storefront.query(HOMEPAGE_SEO_QUERY, {
       variables: {handle: 'freestyle'},
     }),
-    // Add other queries here, so that they are loaded in parallel
   ]);
+
+  const heroSlides = buildMymolimentiHeroSlides();
 
   return {
     shop,
     primaryHero: hero,
+    heroSlides,
     seo: seoPayload.home({url: request.url}),
   };
 }
@@ -143,21 +147,18 @@ export const meta = ({matches}: MetaArgs<typeof loader>) => {
 
 export default function Homepage() {
   const {
-    primaryHero,
+    heroSlides,
     secondaryHero,
     tertiaryHero,
     featuredCollections,
     featuredProducts,
   } = useLoaderData<typeof loader>();
 
-  // TODO: skeletons vs placeholders
   const skeletons = getHeroPlaceholder([{}, {}, {}]);
 
   return (
     <>
-      {primaryHero && (
-        <Hero {...primaryHero} height="full" top loading="eager" />
-      )}
+      <MymolimentiHero slides={heroSlides} />
 
       {featuredProducts && (
         <Suspense>
