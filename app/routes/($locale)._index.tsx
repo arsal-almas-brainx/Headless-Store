@@ -10,6 +10,7 @@ import {getSeoMeta} from '@shopify/hydrogen';
 import {MymolimentiHero} from '~/components/mymolimenti/MymolimentiHero';
 import {ShopByCategories} from '~/components/mymolimenti/ShopByCategories';
 import {TaglineMarquee} from '~/components/mymolimenti/TaglineMarquee';
+import {YoutubeVideoBanner} from '~/components/mymolimenti/YoutubeVideoBanner';
 import {MEDIA_FRAGMENT} from '~/data/fragments';
 import {buildMymolimentiHeroSlides} from '~/lib/mymolimenti-hero';
 import {fetchCategoryCollections} from '~/lib/mymolimenti-categories';
@@ -98,6 +99,8 @@ export default function Homepage() {
       </Suspense>
 
       <TaglineMarquee />
+
+      <YoutubeVideoBanner />
     </>
   );
 }
