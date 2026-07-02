@@ -45,7 +45,7 @@ export function ShopByCategories({
       </div>
 
       {/* Mobile: horizontal scroll */}
-      <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 snap-x snap-mandatory lg:hidden">
+      <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 snap-x snap-mandatory lg:hidden hiddenScroll">
         {items.map((category) => (
           <div key={category.id} className="w-[72vw] max-w-[312px] shrink-0 snap-start">
             <CategoryCard category={category} />

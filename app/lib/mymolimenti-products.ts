@@ -1,5 +1,5 @@
 import type {Storefront} from '@shopify/hydrogen';
-import type {Product} from '@shopify/hydrogen/storefront-api-types';
+import type {Product, Collection} from '@shopify/hydrogen/storefront-api-types';
 
 const COLLECTION_PRODUCTS_QUERY = `#graphql
   query collectionProducts(
@@ -12,6 +12,12 @@ const COLLECTION_PRODUCTS_QUERY = `#graphql
       id
       title
       handle
+      image {
+        url
+        altText
+        width
+        height
+      }
       products(first: $first) {
         nodes {
           id
@@ -47,11 +53,18 @@ const COLLECTION_PRODUCTS_QUERY = `#graphql
 
 type StorefrontClient = Pick<Storefront, 'query'>;
 
+export type SliderCollectionResult = {
+  title: string;
+  handle: string;
+  image?: Collection['image'];
+  products: Product[];
+};
+
 export async function fetchSliderCollectionProducts(
   storefront: StorefrontClient,
   handle: string,
   first: number = 12,
-): Promise<Product[]> {
+): Promise<SliderCollectionResult | null> {
   try {
     const data = await storefront.query(COLLECTION_PRODUCTS_QUERY, {
       variables: {
@@ -60,14 +73,19 @@ export async function fetchSliderCollectionProducts(
       },
     });
 
-    if (!data?.collection?.products?.nodes) {
-      return [];
+    if (!data?.collection) {
+      return null;
     }
 
-    return data.collection.products.nodes as Product[];
+    return {
+      title: data.collection.title,
+      handle: data.collection.handle,
+      image: data.collection.image || undefined,
+      products: (data.collection.products?.nodes || []) as Product[],
+    };
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error(`[fetchSliderCollectionProducts] Query failed for handle: ${handle}`, error);
-    return [];
+    return null;
   }
 }
