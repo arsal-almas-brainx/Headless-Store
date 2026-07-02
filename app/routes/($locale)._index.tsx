@@ -11,9 +11,12 @@ import {MymolimentiHero} from '~/components/mymolimenti/MymolimentiHero';
 import {ShopByCategories} from '~/components/mymolimenti/ShopByCategories';
 import {TaglineMarquee} from '~/components/mymolimenti/TaglineMarquee';
 import {YoutubeVideoBanner} from '~/components/mymolimenti/YoutubeVideoBanner';
+import {ProductSlider} from '~/components/mymolimenti/ProductSlider';
+import {PRODUCT_SLIDER_COLLECTION_HANDLE} from '~/components/mymolimenti/product-slider-config';
 import {MEDIA_FRAGMENT} from '~/data/fragments';
 import {buildMymolimentiHeroSlides} from '~/lib/mymolimenti-hero';
 import {fetchCategoryCollections} from '~/lib/mymolimenti-categories';
+import {fetchSliderCollectionProducts} from '~/lib/mymolimenti-products';
 import {seoPayload} from '~/lib/seo.server';
 import {routeHeaders} from '~/data/cache';
 
@@ -76,7 +79,16 @@ function loadDeferredData({context}: LoaderFunctionArgs) {
     },
   );
 
-  return {categoryCollections};
+  const sliderProducts = fetchSliderCollectionProducts(
+    context.storefront,
+    PRODUCT_SLIDER_COLLECTION_HANDLE,
+  ).catch((error) => {
+    // eslint-disable-next-line no-console
+    console.error('[ProductSlider] Storefront query failed:', error);
+    return [] as Awaited<ReturnType<typeof fetchSliderCollectionProducts>>;
+  });
+
+  return {categoryCollections, sliderProducts};
 }
 
 export const meta = ({matches}: MetaArgs<typeof loader>) => {
@@ -84,7 +96,7 @@ export const meta = ({matches}: MetaArgs<typeof loader>) => {
 };
 
 export default function Homepage() {
-  const {heroSlides, categoryCollections} = useLoaderData<typeof loader>();
+  const {heroSlides, categoryCollections, sliderProducts} = useLoaderData<typeof loader>();
 
   return (
     <>
@@ -101,6 +113,14 @@ export default function Homepage() {
       <TaglineMarquee />
 
       <YoutubeVideoBanner />
+
+      <Suspense fallback={<SliderSkeleton />}>
+        <Await resolve={sliderProducts}>
+          {(products) => (
+            <ProductSlider products={products} />
+          )}
+        </Await>
+      </Suspense>
     </>
   );
 }
@@ -114,6 +134,24 @@ function CategoriesSkeleton() {
           <div key={i}>
             <div className="aspect-[312/360] animate-pulse bg-black/5" />
             <div className="mt-4 h-6 w-32 animate-pulse rounded bg-black/5" />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SliderSkeleton() {
+  return (
+    <section className="bg-white px-4 py-12 sm:px-6 lg:px-[60px] lg:py-16">
+      <div className="mb-8 h-10 w-48 animate-pulse rounded bg-black/5 lg:mb-10" />
+      <div className="flex gap-6 overflow-hidden">
+        {Array.from({length: 4}).map((_, i) => (
+          <div key={i} className="w-[72vw] shrink-0 md:w-[32vw] lg:w-[calc(25%-18px)]">
+            <div className="aspect-[312/360] animate-pulse bg-black/5" />
+            <div className="mt-4 h-4 w-24 animate-pulse rounded bg-black/5" />
+            <div className="mt-2 h-6 w-48 animate-pulse rounded bg-black/5" />
+            <div className="mt-1 h-5 w-16 animate-pulse rounded bg-black/5" />
           </div>
         ))}
       </div>
