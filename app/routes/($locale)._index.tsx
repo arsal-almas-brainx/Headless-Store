@@ -13,6 +13,8 @@ import {TaglineMarquee} from '~/components/mymolimenti/TaglineMarquee';
 import {YoutubeVideoBanner} from '~/components/mymolimenti/YoutubeVideoBanner';
 import {ProductSlider} from '~/components/mymolimenti/ProductSlider';
 import {BestSellers} from '~/components/mymolimenti/BestSellers';
+import {HealthAndSafety} from '~/components/mymolimenti/HealthAndSafety';
+import {BeautyEssential} from '~/components/mymolimenti/BeautyEssential';
 import {
   PRODUCT_SLIDER_COLLECTION_HANDLE,
   BEST_SELLERS_COLLECTION_HANDLE,
@@ -147,6 +149,12 @@ export default function Homepage() {
           )}
         </Await>
       </Suspense>
+
+      <TaglineMarquee />
+
+      <HealthAndSafety />
+
+      <BeautyEssential />
     </>
   );
 }
